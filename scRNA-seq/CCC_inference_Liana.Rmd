@@ -1,0 +1,460 @@
+---
+title: "Cell-cell communication inference with Liana for Postnatal data"
+author: "Mónica Fernandes"
+date: "2025-04-02"
+output:
+  html_document:
+    number_sections: true
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(magrittr)
+library(liana)
+library(Seurat)
+library(viridis)
+```
+
+```{r}
+my_c <- c('#fe864a', '#c9d179', '#95d0fc', '#fbdd7e', '#388004', '#c760ff', '#76cd26', '#ffbacd', '#d6b4fc',  '#cfaf7b','#8b88f8', '#acc2d9', '#EC8FA3FF', '#FCBA65FF', '#FAECCFFF', '#8D7F99FF', '#8C9D57FF', '#163343FF',  '#D8B70AFF', '#02401BFF', '#A2A475FF', '#81A88DFF', '#972D15FF',  '#894585', '#82cbb2', '#d99b82', '#fdee73', '#5170d7', '#ffd8b1',  '#b7e1a1', '#82a67d', '#b7fffa', '#b790d4', '#f5674a', '#C79FEF', '#DAA520', '#A0522D')
+```
+
+# Load scRNA-seq data
+
+```{r}
+
+data <- readRDS('Postnatal_noDBL_raw_annotated.rds')
+
+```
+
+```{r}
+
+data
+```
+
+
+# Check data
+
+```{r}
+unique(data@meta.data$Cell_type)
+```
+
+```{r}
+data %>% dplyr::glimpse()
+```
+
+```{r}
+data <- NormalizeData(data)
+data <- ScaleData(data)
+
+
+```
+
+# Subset data into P2/P3 and P60
+
+```{r}
+P2_3 <- subset(data, subset = Age == 'P2/P3')
+
+P60 <- subset(data, subset = Age == 'P60')
+
+```
+
+
+```{r}
+
+P2_3
+
+```
+```{r}
+
+P60
+
+```
+
+
+# P2/P3 analysis with Liana
+
+
+
+```{r}
+
+dim(P2_3@meta.data)
+
+sum(is.na(P2_3@meta.data))
+
+```
+
+
+```{r}
+
+Idents(P2_3) <- P2_3$Cell_type
+
+```
+
+
+```{r}
+
+liana_P2_3<- liana_wrap(P2_3, resource = 'MouseConsensus', idents_col = 'Cell_type')
+
+```
+
+
+```{r}
+
+liana_P2_3 %>% dplyr::glimpse()
+
+```
+
+```{r}
+
+# We can aggregate these results into a tibble with consensus ranks
+liana_P2_3 <- liana_P2_3 %>%
+  liana_aggregate()
+
+dplyr::glimpse(liana_P2_3)
+```
+
+```{r}
+
+liana_P2_3_sorted <- liana_P2_3[order(liana_P2_3$natmi.edge_specificity,decreasing=TRUE),]
+
+```
+
+```{r}
+liana_P2_3_sorted <- read_delim('liana_P2_3_sorted.csv' )
+```
+```{r}
+turbo <- turbo(n=555)
+```
+
+
+```{r, fig.width=8, fig.height=20}
+
+ld <- liana_dotplot(liana_P2_3_sorted, source_groups = c("Epithelial cells"),
+                target_groups = c("Endothelial cells", "Mesenchymal cells", "Immune cells", "Neuronal and glial cells"),  ntop=40)
+
+
+ld <- ld + theme(axis.text.x = element_text(angle = 90, vjust = 0.1, hjust=0.5)) + scale_colour_continuous(palette = 'turbo')
+ld
+
+
+
+ggsave(ld, 
+       filename = "Revision_lr_pair_epi_p2_3.svg",
+       device = "svg",
+       height = 20, width = 9, units = "in")
+```
+
+```{r, fig.width=8, fig.height=20}
+
+ld <- liana_dotplot(liana_P2_3_sorted, source_groups = c("Endothelial cells"),
+                target_groups = c("Epithelial cells", "Mesenchymal cells", "Immune cells", "Neuronal and glial cells"), ntop=40)
+
+
+ld <- ld + theme(axis.text.x = element_text(angle = 90, vjust = 0.1, hjust=0.5))  + scale_colour_continuous(palette = 'turbo')
+
+ld
+
+ggsave(ld, 
+       filename = "lr_pair_endo_p2_3.svg",
+       device = "svg",
+       height = 20, width = 9, units = "in")
+```
+
+```{r, fig.width=8, fig.height=20}
+
+ld <- liana_dotplot(liana_P2_3_sorted, source_groups = c("Mesenchymal cells"),
+                target_groups = c("Epithelial cells", "Endothelial cells", "Immune cells", "Neuronal and glial cells"), ntop=40)
+
+ld <- ld + theme(axis.text.x = element_text(angle = 90, vjust = 0.1, hjust=0.5)) + scale_colour_continuous(palette = 'turbo')
+
+ld
+
+
+ggsave(ld, 
+       filename = "lr_pair_mesen_p2_3.svg",
+       device = "svg",
+       height = 20, width = 9, units = "in")
+```
+
+```{r, fig.width=8, fig.height=20}
+
+ld <- liana_dotplot(liana_P2_3_sorted, source_groups = c("Immune cells"),
+                target_groups = c("Epithelial cells", "Endothelial cells", "Mesenchymal cells", "Neuronal and glial cells"), ntop=40)
+
+
+ld <- ld + theme(axis.text.x = element_text(angle = 90, vjust = 0.1, hjust=0.5)) + scale_colour_continuous(palette = 'turbo')
+
+ld
+
+ggsave(ld, 
+       filename = "lr_pair_immune_p2_3.svg",
+       device = "svg",
+       height = 20, width = 9, units = "in")
+```
+
+```{r, fig.width=8, fig.height=20}
+
+ld <- liana_dotplot(liana_P2_3_sorted, source_groups = c("Neuronal and glial cells"),
+                target_groups = c("Epithelial cells", "Endothelial cells", "Mesenchymal cells", "Immune cells"), ntop=40)
+
+
+ld <- ld + theme(axis.text.x = element_text(angle = 90, vjust = 0.1, hjust=0.5)) + scale_colour_continuous(palette = 'turbo')
+
+ld
+
+
+ggsave(ld, 
+       filename = "lr_pair_neugli_p2_3.svg",
+       device = "svg",
+       height = 20, width = 9, units = "in")
+```
+```{r}
+
+library(viridis)
+
+library(RColorBrewer)
+```
+
+
+```{r, fig.height=7, fig.width=10, fig.dpi=300, fig.path='heatmap_p2_3.svg', fig.format='svg'}
+
+liana_P2_3_trunc <- filter(liana_P2_3_sorted, aggregate_rank <= 0.01) # note that these pvals are already corrected
+
+
+
+write.csv(liana_P2_3_trunc, "liana_P2_3_trunc.csv", row.names=TRUE, quote=FALSE)
+
+
+svg(filename = 'heatmap_p2_3.svg', width = 10, height = 7)
+h <- heat_freq(liana_P2_3_trunc)
+
+h
+dev.off()
+
+h
+
+```
+
+
+```{r}
+liana_P2_3_trunc <- read_delim('liana_P2_3_trunc.csv')
+```
+
+```{r}
+library(circlize)
+```
+```{r}
+
+liana_P2_3_trunc
+```
+```{r, fig.height=5, fig.width=5, fig.dpi=300}
+
+circos.clear()
+
+p <- chord_freq(liana_P2_3_trunc,
+                source_groups = c("Epithelial cells", "Endothelial cells", "Mesenchymal cells", "Immune cells", "Neuronal and glial cells"),
+                target_groups = c("Epithelial cells", "Endothelial cells", "Mesenchymal cells", "Immune cells", "Neuronal and glial cells"), facing = 'bending.outside', cex = 0.4,
+                adj = c(0.5, 4))
+
+
+p  
+
+```
+
+# P60 analysis with Liana
+
+
+
+```{r}
+
+dim(P60@meta.data)
+
+sum(is.na(P60@meta.data))
+
+```
+
+
+```{r}
+
+Idents(P60) <- P60$Cell_type
+
+```
+
+
+```{r}
+
+liana_P60<- liana_wrap(P60, resource = 'MouseConsensus', idents_col = 'Cell_type')
+
+```
+
+
+```{r}
+
+liana_P60 %>% dplyr::glimpse()
+
+```
+
+
+```{r}
+
+# We can aggregate these results into a tibble with consensus ranks
+liana_P60 <- liana_P60 %>%
+  liana_aggregate()
+
+dplyr::glimpse(liana_P60)
+```
+
+```{r}
+
+liana_P60_sorted <- liana_P60[order(liana_P60$natmi.edge_specificity,decreasing=TRUE),]
+
+
+write.csv(liana_P60_sorted, "liana_P60_sorted.csv", row.names=TRUE, quote=FALSE)
+
+```
+
+```{r}
+liana_P60_sorted <- read_delim('liana_P60_sorted.csv')
+```
+
+
+```{r, fig.width=8, fig.height=20}
+
+ld <- liana_dotplot(liana_P60_sorted, source_groups = c("Epithelial cells"),
+                target_groups = c("Endothelial cells", "Mesenchymal cells", "Immune cells", "Neuronal and glial cells"), ntop=40)
+
+
+ld <- ld + theme(axis.text.x = element_text(angle = 90, vjust = 0.1, hjust=0.5)) + scale_colour_continuous(palette = 'turbo')
+
+ld
+
+ggsave(ld, 
+       filename = "lr_pair_epi_p60.svg",
+       device = "svg",
+       height = 20, width = 9, units = "in")
+```
+
+```{r, fig.width=8, fig.height=20}
+
+ld <- liana_dotplot(liana_P60_sorted, source_groups = c("Endothelial cells"),
+                target_groups = c("Epithelial cells", "Mesenchymal cells", "Immune cells", "Neuronal and glial cells"), ntop=40)
+
+ld <- ld + theme(axis.text.x = element_text(angle = 90, vjust = 0.1, hjust=0.5)) + scale_colour_continuous(palette = 'turbo')
+
+ld
+
+
+ggsave(ld, 
+       filename = "lr_pair_endo_p60.svg",
+       device = "svg",
+       height = 20, width = 9, units = "in")
+
+
+```
+
+```{r, fig.width=8, fig.height=20}
+
+ld <- liana_dotplot(liana_P60_sorted, source_groups = c("Mesenchymal cells"),
+                target_groups = c("Epithelial cells", "Endothelial cells", "Immune cells", "Neuronal and glial cells"), ntop=40)
+
+ld <- ld + theme(axis.text.x = element_text(angle = 90, vjust = 0.1, hjust=0.5)) + scale_colour_continuous(palette = 'turbo')
+
+ld
+
+
+ggsave(ld, 
+       filename = "lr_pair_mesen_p60.svg",
+       device = "svg",
+       height = 20, width = 9, units = "in")
+```
+
+```{r, fig.width=8, fig.height=20}
+
+ld <- liana_dotplot(liana_P60_sorted, source_groups = c("Immune cells"),
+                target_groups = c("Epithelial cells", "Endothelial cells", "Mesenchymal cells", "Neuronal and glial cells"), ntop=40)
+
+ld <- ld + theme(axis.text.x = element_text(angle = 90, vjust = 0.1, hjust=0.5)) + scale_colour_continuous(palette = 'turbo')
+
+ld
+
+
+ggsave(ld, 
+       filename = "lr_pair_immune_p60.svg",
+       device = "svg",
+       height = 20, width = 9, units = "in")
+```
+
+```{r, fig.width=8, fig.height=20}
+
+ld <- liana_dotplot(liana_P60_sorted, source_groups = c("Neuronal and glial cells"),
+                target_groups = c("Epithelial cells", "Endothelial cells", "Mesenchymal cells", "Immune cells"), ntop=40)
+
+
+ld <- ld + theme(axis.text.x = element_text(angle = 90, vjust = 0.1, hjust=0.5)) + scale_colour_continuous(palette = 'turbo')
+
+ld
+
+
+
+ggsave(ld, 
+       filename = "lr_pair_neugli_p60.svg",
+       device = "svg",
+       height = 20, width = 9, units = "in")
+```
+
+
+
+```{r, fig.height=7, fig.width=10, fig.dpi=300}
+
+liana_P60_trunc <- filter(liana_P60_sorted, aggregate_rank <= 0.01) # note that these pvals are already corrected
+
+
+
+write.csv(liana_P60_trunc, "liana_P60_trunc.csv", row.names=TRUE, quote=FALSE)
+
+
+svg(filename = 'heatmap_p60.svg', width = 10, height = 7)
+h <- heat_freq(liana_P60_trunc) 
+
+h
+dev.off()
+
+h
+```
+
+
+```{r}
+svg(filename = 'heatmap_p60.svg', width = 10, height = 7)
+h <- heat_freq(liana_P60_trunc) 
+
+h
+dev.off()
+
+h
+```
+
+```{r}
+
+liana_P60_trunc
+```
+
+```{r, fig.height=5, fig.width=5, fig.dpi=300}
+
+circos.clear()
+
+p <- chord_freq(liana_P60_trunc,
+                source_groups = c("Epithelial cells", "Endothelial cells", "Mesenchymal cells", "Immune cells", "Neuronal and glial cells"),
+                target_groups = c("Epithelial cells", "Endothelial cells", "Mesenchymal cells", "Immune cells", "Neuronal and glial cells"), facing = 'bending.outside', cex = 0.4,
+                adj = c(0.5, 4))
+
+
+p  
+
+```
