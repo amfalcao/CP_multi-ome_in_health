@@ -5,4 +5,4 @@
 
 # Repository organization
 
-This repository is divided into two different main folders, **scRNA-seq** and **snMultiome-seq**, each containing teh analysis performed for each modality. Inside each folder, ypu will find a more detailed dicription of its contents.
+This repository is divided into two different main folders, **scRNA-seq** and **snMultiome-seq**, each containing the analysis performed for each modality. Inside each folder, ypu will find a more detailed dicription of its contents.
