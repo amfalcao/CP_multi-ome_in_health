@@ -4,4 +4,4 @@ Here you can find the files with the analysis we performed for our snMultiome-se
 
 **Prepare_files_and_seurat_objects.ipynb:** This file contains the preparation of additional files needed for other tools, and prepares the data to be used as a seurat object for the analysis.
 
-**Subclustering:** This folder contains teh files used to perform the analysis for ach major cell type we found. Each fil represents a different cell type according to its name.
+**Subclustering:** This folder contains the files used to perform the analysis for ach major cell type we found. Each fil represents a different cell type according to its name.
